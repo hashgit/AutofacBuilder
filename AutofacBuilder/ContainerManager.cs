@@ -31,6 +31,7 @@ namespace AutofacBuilder
             var assembly = SafeLoadAssembly(assemblyName);
             if (assembly == null) return;
 
+            // non single instances
             var types = builder.RegisterAssemblyTypes(assembly);
             if (!string.IsNullOrWhiteSpace(baseTypeName))
             {
@@ -38,9 +39,19 @@ namespace AutofacBuilder
                 types = types.Where(baseType.IsAssignableFrom);
             }
 
-            if (qualifier != null) types.Where(qualifier);
-            types.Where(IsSingleton).AsImplementedInterfaces().SingleInstance();
+            if (qualifier != null) types = types.Where(qualifier);
             types.Where(type => !IsSingleton(type)).AsImplementedInterfaces().ScopeCustom();
+
+            // single instance
+            types = builder.RegisterAssemblyTypes(assembly);
+            if (!string.IsNullOrWhiteSpace(baseTypeName))
+            {
+                var baseType = assembly.GetType(baseTypeName, true);
+                types = types.Where(baseType.IsAssignableFrom);
+            }
+
+            if (qualifier != null) types = types.Where(qualifier);
+            types.Where(IsSingleton).AsImplementedInterfaces().SingleInstance();
         }
 
         private static bool IsSingleton(Type type)
